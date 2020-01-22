@@ -13,16 +13,21 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include <array>
 
 SDL_Window* displayWindow;
 bool gameIsRunning = true;
 
 ShaderProgram program;
+ShaderProgram unTextured;
+
 glm::mat4 viewMatrix, modelMatrix, projectionMatrix;
 
 float player_x = 0;
 
 GLuint playerTextureID;
+GLuint FireNationShipTextureID;
+GLuint AangTextureID;
 
 GLuint LoadTexture(const char* filePath) {
     int w, h, n;
@@ -58,7 +63,8 @@ void Initialize() {
     glViewport(0, 0, 640, 480);
     
     program.Load("shaders/vertex_textured.glsl", "shaders/fragment_textured.glsl");
-    
+    unTextured.Load("shaders/vertex.glsl", "shaders/fragment.glsl");
+
     playerTextureID = LoadTexture("FireNation.png");
     
     viewMatrix = glm::mat4(1.0f);
@@ -68,7 +74,6 @@ void Initialize() {
     program.SetProjectionMatrix(projectionMatrix);
     program.SetViewMatrix(viewMatrix);
     program.SetColor(1.0f, 1.0f, 1.0f, 1.0f);
-    
     glUseProgram(program.programID);
     
     glEnable(GL_BLEND);
@@ -76,6 +81,12 @@ void Initialize() {
 
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
+    unTextured.SetProjectionMatrix(projectionMatrix);
+    unTextured.SetViewMatrix(viewMatrix);
+    unTextured.SetColor(0.0f, 0.0f, 1.0f, 1.0f);
+
+    glUseProgram(unTextured.programID);
 }
 
 void ProcessInput() {
@@ -100,34 +111,49 @@ void Update() {
     rotate_z += 45.0 * deltaTime;
 
     modelMatrix = glm::mat4(1.0f);
-    modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, player_x, 0.0f));
+    modelMatrix = glm::translate(modelMatrix, glm::vec3(player_x, 0.0f, 0.0f));
     
     //modelMatrix = glm::rotate(modelMatrix, glm::radians(rotate_z), glm::vec3(0.0f, 0.0f, 1.0f));
 }
 
+void RenderTriangles(const float vertices[], int vertCount) {
+    
+    modelMatrix = glm::mat4(1.0f);
+    unTextured.SetModelMatrix(modelMatrix);
+
+
+    glVertexAttribPointer(unTextured.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
+    glEnableVertexAttribArray(unTextured.positionAttribute);
+    glDrawArrays(GL_TRIANGLES, 0, vertCount);
+    glDisableVertexAttribArray(unTextured.positionAttribute);
+}
+
+float fakeSea[] = {
+-5.0f, -1.0f, 
+-5.0f, -3.75f, 
+5.0f, -1.0f,
+5.0f, -1.0f,
+-5.0f, -3.75f,
+5.0f, -3.75f,
+};
+
+
+float testTriangle[] = { 0.5f, -0.5f, 0.0f, 0.5f, -0.5f, -0.5f }; //only for testing
+
+float texCoords[] = { 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0 };
+
 void Render() {
     glClear(GL_COLOR_BUFFER_BIT);
     
-    program.SetModelMatrix(modelMatrix);
+    RenderTriangles(fakeSea, 6);
     
-    float vertices[]  = { -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5 };
-    float texCoords[] = { 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0 };
-    
-    glBindTexture(GL_TEXTURE_2D, playerTextureID);
+   // glVertexAttribPointer(seaShader.positionAttribute, 2, GL_FLOAT, false, 0, sea);
+   // glEnableVertexAttribArray(seaShader.positionAttribute);
+   // glDrawArrays(GL_QUADS, 0, 4);
 
-    glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
-    glEnableVertexAttribArray(program.positionAttribute);
-    
-    glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords);
-    glEnableVertexAttribArray(program.texCoordAttribute);
-    
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    
-    glDisableVertexAttribArray(program.positionAttribute);
-    glDisableVertexAttribArray(program.texCoordAttribute);
-    
     SDL_GL_SwapWindow(displayWindow);
 }
+
 
 void Shutdown() {
     SDL_Quit();
