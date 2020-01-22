@@ -23,9 +23,7 @@ ShaderProgram unTextured;
 
 glm::mat4 viewMatrix, modelMatrix, projectionMatrix;
 
-float player_x = 0;
-
-GLuint playerTextureID;
+//GLuint playerTextureID;
 GLuint FireNationShipTextureID;
 GLuint AangTextureID;
 
@@ -52,7 +50,7 @@ GLuint LoadTexture(const char* filePath) {
 
 void Initialize() {
     SDL_Init(SDL_INIT_VIDEO);
-    displayWindow = SDL_CreateWindow("Textured", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL);
+    displayWindow = SDL_CreateWindow("TwoDScene", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(displayWindow);
     SDL_GL_MakeCurrent(displayWindow, context);
     
@@ -65,8 +63,9 @@ void Initialize() {
     program.Load("shaders/vertex_textured.glsl", "shaders/fragment_textured.glsl");
     unTextured.Load("shaders/vertex.glsl", "shaders/fragment.glsl");
 
-    playerTextureID = LoadTexture("FireNation.png");
-    
+    FireNationShipTextureID = LoadTexture("FireNation.png");
+    AangTextureID = LoadTexture("Aang.png");
+
     viewMatrix = glm::mat4(1.0f);
     modelMatrix = glm::mat4(1.0f);
     projectionMatrix = glm::ortho(-5.0f, 5.0f, -3.75f, 3.75f, -1.0f, 1.0f);
@@ -87,6 +86,8 @@ void Initialize() {
     unTextured.SetColor(0.0f, 0.0f, 1.0f, 1.0f);
 
     glUseProgram(unTextured.programID);
+
+
 }
 
 void ProcessInput() {
@@ -100,6 +101,7 @@ void ProcessInput() {
 
 float lastTicks = 0;
 float rotate_z = 0;
+float player_x = 0;
 
 void Update() {
     float ticks = (float)SDL_GetTicks() / 1000.0f;
@@ -127,7 +129,7 @@ void RenderTriangles(const float vertices[], int vertCount) {
     glDrawArrays(GL_TRIANGLES, 0, vertCount);
     glDisableVertexAttribArray(unTextured.positionAttribute);
 }
-
+//not going keep on instantiate float arrays in a constant render looped call from processinout
 float fakeSea[] = {
 -5.0f, -1.0f, 
 -5.0f, -3.75f, 
@@ -140,11 +142,41 @@ float fakeSea[] = {
 
 float testTriangle[] = { 0.5f, -0.5f, 0.0f, 0.5f, -0.5f, -0.5f }; //only for testing
 
-float texCoords[] = { 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0 };
+float vertices[] = { -2.0f, -2.0f, 2.0f, -2.0f, 2.0f, 0.0f, -2.0f, -2.0f, 2.0f, 0.0f, -2.0f, 0.0f };
 
+
+void RenderTextures() {
+    for (int i = 0; i < 2; i++) {
+        //modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 1.0f, 0.0f));
+        program.SetModelMatrix(modelMatrix);
+
+        float vertices[] = { -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5 };
+        float texCoords[] = { 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0 };
+
+        glBindTexture(GL_TEXTURE_2D, FireNationShipTextureID);
+        if (i == 1) {
+            glBindTexture(GL_TEXTURE_2D, AangTextureID);
+        }
+        
+        //modelMatrix = glm::rotate(modelMatrix, glm::radians(rotate_z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+
+        glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
+        glEnableVertexAttribArray(program.positionAttribute);
+
+        glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords);
+        glEnableVertexAttribArray(program.texCoordAttribute);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glDisableVertexAttribArray(program.positionAttribute);
+        glDisableVertexAttribArray(program.texCoordAttribute);
+    }
+}
 void Render() {
     glClear(GL_COLOR_BUFFER_BIT);
     
+    RenderTextures();
     RenderTriangles(fakeSea, 6);
     
    // glVertexAttribPointer(seaShader.positionAttribute, 2, GL_FLOAT, false, 0, sea);
